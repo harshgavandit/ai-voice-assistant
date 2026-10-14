@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Chat Assistant</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #f0f4fa; color: #18243b; margin: 0; min-height: 100dvh; display: flex; flex-direction: column; }
+    header { background: white; border-bottom: 1px solid #dce4ef; padding: 22px max(20px, calc((100vw - 860px) / 2)); }
+    h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -.5px; }
+    header p { margin: 0; color: #526078; line-height: 1.5; font-size: 14px; }
+    #connection { margin-top: 10px; font-size: 13px; color: #334c72; }
+    main { width: min(100%, 900px); margin: auto; padding: 20px; flex: 1; }
+    #chat { display: flex; flex-direction: column; gap: 14px; }
+    .welcome { background: white; border: 1px solid #dce4ef; padding: 24px; border-radius: 16px; }
+    .welcome h2 { margin: 0 0 8px; font-size: 19px; }
+    .welcome p { margin: 0; color: #526078; line-height: 1.6; }
+    .bubble { max-width: 85%; padding: 14px 18px; border-radius: 16px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 15px; }
+    .user { align-self: flex-end; background: #1965d2; color: white; border-bottom-right-radius: 4px; }
+    .assistant { align-self: flex-start; background: white; color: #18243b; border: 1px solid #dce4ef; border-bottom-left-radius: 4px; }
+    .error { color: #9d2525; background: #fff4f4; border-color: #edc5c5; }
+    .bubble audio { display: block; max-width: 100%; width: 300px; margin-top: 12px; }
+    .playback-note { display: block; margin-top: 8px; font-size: 13px; color: #526078; }
+    #controls { position: sticky; bottom: 0; background: white; border-top: 1px solid #dce4ef; padding: 16px 20px 20px; text-align: center; }
+    .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    button, .upload-label { font: inherit; font-size: 14px; border-radius: 10px; padding: 13px 19px; cursor: pointer; border: 1px solid #cbd7e7; background: white; color: #294266; }
+    #micBtn { background: #1965d2; border-color: #1965d2; color: white; min-width: 180px; font-weight: 600; }
+    #micBtn.recording { background: #b62f3e; border-color: #b62f3e; }
+    button:disabled, .upload-label.disabled { opacity: .55; cursor: wait; }
+    button:focus-visible, .upload-label:focus-within { outline: 3px solid #9fc3ff; outline-offset: 3px; }
+    #audioFile { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    #status { font-size: 14px; color: #526078; margin: 12px 0 0; min-height: 21px; }
+    .disclosure { font-size: 12px; color: #64718a; margin: 10px 0 0; }
+    @media (max-width: 500px) { header { padding: 18px; } main { padding: 16px; } .bubble { max-width: 94%; } h1 { font-size: 21px; } #controls { padding: 14px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Voice Chat Assistant</h1>
+    <p>Speak an idea. Hear a short adventure brought to life.</p>
+    <div id="connection" role="status">Checking assistant configuration…</div>
+  </header>
+  <main>
+    <div id="chat" role="log" aria-label="Conversation" aria-live="polite">
+      <div class="welcome" id="welcome">
+        <h2>Where will the story begin?</h2>
+        <p>Tap Start recording, share your idea, then tap Stop &amp; send. You can also upload an audio recording. Try: “Tell me a story about a brave girl and a robot on Mars.”</p>
+      </div>
+    </div>
+  </main>
+  <div id="controls">
+    <div class="actions">
+      <button id="micBtn" type="button" aria-pressed="false">Start recording</button>
+      <button id="demoBtn" type="button">Try demo</button>
+      <label class="upload-label" id="uploadLabel">Upload audio<input id="audioFile" type="file" accept=".webm,.wav,.mp3,.mp4,.m4a,.ogg,.flac,.mpeg,.mpga" aria-label="Upload an audio recording"></label>
+      <button id="clearBtn" type="button">New conversation</button>
+    </div>
+    <p id="status" role="status" aria-live="polite">Ready when you are.</p>
+    <p class="disclosure">Your recording is sent to OpenAI for transcription. Replies use an AI-generated voice.</p>
+  </div>
+  <script src="/script.js" defer></script>
+</body>
+</html>
