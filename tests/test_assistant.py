@@ -147,3 +147,18 @@ def test_ui_and_demo_are_served_without_exposing_env(app_client):
     health = client.get('/health').json()
     assert health['model'] == main.MODEL
     assert 'api_key' not in health
+
+
+def test_health_exposes_active_upload_limit(app_client, monkeypatch):
+    client, _ = app_client
+    monkeypatch.setattr(main, 'MAX_AUDIO_BYTES', 4 * 1024 * 1024)
+    assert client.get('/health').json()['max_audio_bytes'] == 4194304
+
+
+def test_hosted_upload_limit_rejects_audio_with_matching_message(app_client, monkeypatch):
+    client, fake = app_client
+    monkeypatch.setattr(main, 'MAX_AUDIO_BYTES', 4 * 1024 * 1024)
+    response = upload(client, b'x' * (4194304 + 1), 'large.wav')
+    assert response.status_code == 413
+    assert 'than 4 MB' in response.json()['detail']
+    fake.audio.transcriptions.create.assert_not_called()

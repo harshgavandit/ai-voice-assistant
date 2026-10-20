@@ -1,5 +1,7 @@
 # AI Voice Assistant
 
+**Live demo:** [ai-voice-assistant-steel.vercel.app](https://ai-voice-assistant-steel.vercel.app)
+
 A voice-driven adventure storyteller built with **FastAPI, vanilla JavaScript, and OpenAI**. Record a story idea, upload audio, or try the included demo. The app transcribes the recording, creates a short story based on your words, and reads it back with an AI-generated voice.
 
 ![Voice assistant displaying a transcribed request, generated story, and audio playback](docs/images/voice-assistant-desktop.png)
@@ -94,7 +96,7 @@ Never commit your `.env`. The repository includes a placeholder-only `.env.examp
 3. Read the transcript and story, and listen to the generated reply.
 4. Record a follow-up to continue the conversation, or click **New conversation** to start fresh.
 
-**Try demo** submits the bundled synthetic recording through the same real OpenAI pipeline. **Upload audio** accepts WebM, WAV, MP3, MP4, M4A, OGG, FLAC, MPEG, and MPGA files. Uploaded audio must be non-empty and no larger than 24 MB.
+**Try demo** submits the bundled synthetic recording through the same real OpenAI pipeline. **Upload audio** accepts WebM, WAV, MP3, MP4, M4A, OGG, FLAC, MPEG, and MPGA files. Uploaded audio must be non-empty. The hosted Vercel version accepts files up to 4 MB; local runs accept up to 24 MB. The browser reads the active limit from the server.
 
 Recordings are sent to OpenAI for transcription. Replies use an AI-generated voice. The interface displays this disclosure.
 
@@ -144,6 +146,21 @@ ai-voice-assistant/
 
 `/health` checks configuration readiness without making an OpenAI request; it does not prove available quota or model access. Only explicit static files are served, so `/.env` is inaccessible.
 
+## Vercel deployment
+
+The live app is hosted at **https://ai-voice-assistant-steel.vercel.app** in the `ai-voice-assistant` Vercel project, linked to this GitHub repository.
+
+- Vercel detects the `app` exported from `main.py` as FastAPI.
+- `.python-version` selects Python 3.14.
+- `vercel.json` sets a 240-second function limit for the three sequential OpenAI stages.
+- `.vercelignore` excludes local environment files, virtual environments, caches, tests, and documentation from the deployed bundle.
+- The OpenAI key is a sensitive production environment variable. The key is never included in the browser JavaScript or committed configuration.
+- The app uses a 4 MB audio upload limit when `VERCEL` is set, leaving room below the platform's request payload limit. A non-JSON platform failure also produces a readable browser error.
+
+To deploy your own copy, import the GitHub repository into Vercel with the FastAPI preset. Add the variables listed under Configuration to the production environment, then deploy. Select **Sensitive** for `OPENAI_API_KEY`. Model settings must match access available to your API project. Do not upload `.env` as an asset.
+
+On serverless hosting, conversation context is temporary and specific to a running instance. It may reset when instances restart or requests reach another instance; durable shared history is not implemented. Each recording, including **Try demo**, makes real requests against the configured OpenAI key and consumes its API quota.
+
 ## Tests
 
 Backend tests mock OpenAI and make no paid API requests. The frontend checks use browser API doubles and do not require a running server.
@@ -187,6 +204,6 @@ Physical microphone capture and audible speaker output were not tested in the li
 
 ## Scope and limitations
 
-This is a local development app bound to `127.0.0.1`. It has no public-user authentication or durable conversation storage. Recent context is held in process memory, limited to 12 messages per session and 100 sessions, with a 30-minute inactivity expiry checked on subsequent requests. Restarting clears context; use a single worker for consistent conversation state.
+Local runs bind to `127.0.0.1`; the Vercel deployment serves the same app over public HTTPS. The app has no public-user authentication, application-level rate limiter, or durable conversation storage. Recent context is held in process memory, limited to 12 messages per session and 100 sessions, with a 30-minute inactivity expiry checked on subsequent requests. Restarting clears context; use a single worker for consistent conversation state.
 
-Redis persistence is not implemented. Deploying publicly would require authentication, request limits, and a deployment/storage design. Publishing this repository shares the source; it does not deploy the application.
+Redis persistence is not implemented. The public URL is a demonstration deployment; a service intended for ongoing public traffic would need authentication, request limits, and shared storage. The hosted HTTP and real OpenAI pipeline checks from October 20 are recorded in `VERIFICATION.md`. Browser automation was unavailable for that deployment check, so hosted browser playback and physical microphone/speaker output are not claimed.

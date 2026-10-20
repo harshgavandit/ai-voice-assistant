@@ -4,6 +4,7 @@
 .venv/
 venv/
 .runtime/
+.vercel/
 __pycache__/
 .pytest_cache/
 *.py[cod]

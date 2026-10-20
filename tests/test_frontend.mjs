@@ -24,7 +24,7 @@ class Element {
   pause() { this.paused = true; }
   async play() { if (this.failPlay) throw new Error('autoplay blocked'); this.paused = false; }
 }
-async function fixture({ fetchError, denyMic, blockAutoplay } = {}) {
+async function fixture({ fetchError, denyMic, blockAutoplay, maxAudioBytes = 24 * 1024 * 1024, nonJsonError } = {}) {
   const ids = ['chat','micBtn','audioFile','uploadLabel','clearBtn','demoBtn','status','connection','welcome'];
   const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
   const calls = [];
@@ -53,8 +53,9 @@ async function fixture({ fetchError, denyMic, blockAutoplay } = {}) {
     window: { MediaRecorder: FakeRecorder, addEventListener: () => {} }, MediaRecorder: FakeRecorder,
     fetch: async (url, options) => {
       calls.push({url, options});
-      if (url === '/health') return {ok:true, json:async () => ({api_key_configured:true,model:'gpt-6-luna'})};
+      if (url === '/health') return {ok:true, json:async () => ({api_key_configured:true,model:'gpt-6-luna',max_audio_bytes:maxAudioBytes})};
       if (url === '/demo.wav') return {ok:true, blob:async () => new Blob(['demo recording'])};
+      if (nonJsonError) return {ok:false,status:413,json:async () => { throw new SyntaxError('Unexpected token'); }};
       return {ok:!fetchError, json:async () => fetchError ? {detail:'OpenAI API quota is exhausted.'} : {transcript:'Tell me a story on Mars.', response:'Maya met a robot.', audio_base64:'SUQz'}};
     },
   };
@@ -131,5 +132,21 @@ await test('file upload uses the selected filename and rejects empty audio', asy
   await settle();
   assert.equal(f.calls.length, before);
   assert.match(f.elements.status.textContent, /empty/);
+});
+
+await test('hosted upload limit prevents an oversized request', async () => {
+  const f = await fixture({maxAudioBytes: 4194304});
+  const file = new Blob(['x'.repeat(4194305)]); file.name = 'large.wav';
+  f.elements.audioFile.files = [file];
+  f.elements.audioFile.listeners.change();
+  await settle();
+  assert.equal(f.calls.filter(c => c.url === '/assistant').length, 0);
+  assert.match(f.elements.status.textContent, /4 MB/);
+});
+await test('platform non-JSON upload error is actionable', async () => {
+  const f = await fixture({nonJsonError:true});
+  await click(f.elements.demoBtn);
+  assert.match(f.elements.chat.children[1].textContent, /smaller than/);
+  assert.equal(f.elements.micBtn.disabled, false);
 });
 console.log(`${results.length} frontend regression checks passed.`);

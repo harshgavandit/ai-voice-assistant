@@ -14,6 +14,7 @@ let configured = false;
 let recordingTimer = null;
 let playingAudio = null;
 let sessionId = crypto.randomUUID();
+let maxAudioBytes = 24 * 1024 * 1024;
 
 function setStatus(text) { status.textContent = text; }
 function updateControls() {
@@ -42,7 +43,7 @@ function pauseAudio() {
 async function sendAudio(blob, filename) {
   if (busy) return;
   if (!blob.size) { setStatus("The recording is empty. Please try again."); return; }
-  if (blob.size > 24 * 1024 * 1024) { setStatus("Choose an audio file smaller than 24 MB."); return; }
+  if (blob.size > maxAudioBytes) { setStatus(`Choose an audio file smaller than ${Math.floor(maxAudioBytes / (1024 * 1024))} MB.`); return; }
   busy = true;
   pauseAudio();
   updateControls();
@@ -55,9 +56,9 @@ async function sendAudio(blob, filename) {
     form.append("file", blob, filename);
     form.append("session_id", sessionId);
     const response = await fetch("/assistant", { method: "POST", body: form, signal: controller.signal });
-    const data = await response.json();
-    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "The assistant could not process this recording.");
-    if (!data.transcript || !data.response || !data.audio_base64) throw new Error("The server returned an incomplete reply.");
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(typeof data?.detail === "string" ? data.detail : response.status === 413 ? `Choose an audio file smaller than ${Math.floor(maxAudioBytes / (1024 * 1024))} MB.` : "The assistant could not process this recording. Please try again.");
+    if (!data?.transcript || !data?.response || !data?.audio_base64) throw new Error("The server returned an incomplete reply.");
     userBubble.textContent = data.transcript;
     const replyBubble = addMessage(data.response, "assistant");
     const audio = document.createElement("audio");
@@ -204,6 +205,7 @@ async function checkHealth() {
     if (!response.ok) throw new Error("Health check failed");
     const data = await response.json();
     configured = Boolean(data.api_key_configured);
+    if (Number.isSafeInteger(data.max_audio_bytes) && data.max_audio_bytes > 0) maxAudioBytes = data.max_audio_bytes;
     connection.textContent = configured ? `Ready · ${data.model}` : "OpenAI API key is missing from the server configuration.";
     if (!configured) setStatus("Configure the API key in .env and restart the server.");
   } catch {

@@ -34,3 +34,21 @@ The live demo is distinct from regression tests: it called all three OpenAI mode
 Before publication, the backend and frontend regression suites, syntax/compilation checks, dependency consistency, staged-file review, and credential scan are rerun. The live OpenAI results above are from October 13 and are not a claim of another paid API run on October 14.
 
 The repository includes source, test files, the synthetic demo, documentation, and the shareable screenshots in docs/images. Detailed runtime evidence and server logs remain local and are excluded by .gitignore.
+
+## Vercel production verification — October 20, 2026
+
+Public URL: https://ai-voice-assistant-steel.vercel.app
+
+Vercel reported the initial deployment `dpl_2rM94k3uc7CuhSHJGGW6iTd4gjks` as READY using Python 3.14. Its production domain was checked over unauthenticated HTTPS.
+
+- `/`, `/script.js`, and `/demo.wav` returned HTTP 200. The home page contained the Voice Chat Assistant interface and the demo was a valid RIFF/WAV file.
+- `/.env`, `/.env.local`, and `/.vercel/project.json` returned HTTP 404.
+- `/health` reported the key configured, `gpt-6-luna`, `whisper-1`, `gpt-4o-mini-tts`, `onyx`, and a 4,194,304-byte hosted audio upload limit.
+- A real multipart request to the hosted `/assistant` endpoint returned HTTP 200 in 13.21 seconds. It correctly transcribed: “Tell me a short story about a brave girl named Maya and a robot on Mars.”
+- The response contained a matching story and 573,696 bytes of base64-decoded MP3 data (`audio/mpeg`, valid MP3 signature). This verifies a real hosted transcription -> reply generation -> speech generation request, not a mocked provider response.
+- Empty audio returned HTTP 400.
+- All 19 backend tests and 9 frontend checks passed, including hosted upload-limit handling and platform non-JSON errors. Python compilation, JavaScript syntax, dependency consistency, and diff whitespace checks passed.
+
+Browser automation was disabled in Work settings during the hosted check. Hosted browser rendering, playback, and physical microphone/speaker behavior were not tested; the October 13 browser playback evidence is a separate local result. Serverless conversation history is instance-local and can reset across instances.
+
+The hosted request measurements and returned synthetic story are retained locally in `.runtime/hosted-verification.json`; the returned MP3 is `.runtime/hosted-reply.mp3`. These files and all local environment settings are excluded from Git and the deployment upload.

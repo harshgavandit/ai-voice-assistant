@@ -25,7 +25,8 @@ MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
 TRANSCRIPTION_MODEL = os.getenv("OPENAI_TRANSCRIPTION_MODEL", "whisper-1").strip()
 TTS_MODEL = os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts").strip()
 VOICE = os.getenv("OPENAI_TTS_VOICE", "onyx").strip()
-MAX_AUDIO_BYTES = 24 * 1024 * 1024
+# Leave room for multipart metadata below Vercel's 4.5 MB request limit.
+MAX_AUDIO_BYTES = (4 if os.getenv("VERCEL") else 24) * 1024 * 1024
 SESSION_TTL = 30 * 60
 MAX_SESSIONS = 100
 MAX_HISTORY_MESSAGES = 12
@@ -62,7 +63,8 @@ async def script():
 async def health():
     # Configuration readiness is not proof of provider access or available quota.
     return {"status": "ok", "api_key_configured": bool(API_KEY), "model": MODEL,
-            "transcription_model": TRANSCRIPTION_MODEL, "tts_model": TTS_MODEL, "voice": VOICE}
+            "transcription_model": TRANSCRIPTION_MODEL, "tts_model": TTS_MODEL, "voice": VOICE,
+            "max_audio_bytes": MAX_AUDIO_BYTES}
 
 
 @app.get("/demo.wav", include_in_schema=False)
@@ -123,7 +125,7 @@ async def assistant(file: UploadFile, session_id: str = Form("default", min_leng
     if not content:
         raise HTTPException(400, "The recording is empty. Please record some speech.")
     if len(content) > MAX_AUDIO_BYTES:
-        raise HTTPException(413, "Audio must be smaller than 24 MB.")
+        raise HTTPException(413, f"Audio must be smaller than {MAX_AUDIO_BYTES // (1024 * 1024)} MB.")
     if session_id in active_sessions:
         raise HTTPException(409, "A reply for this conversation is already processing.")
     history = history_for(session_id)
